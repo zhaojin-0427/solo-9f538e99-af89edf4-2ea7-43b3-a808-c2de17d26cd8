@@ -56,11 +56,23 @@ class ErrorDetail(BaseModel):
 class RevisionResult(BaseModel):
     relation_id: int
     revision: int
-    status: Literal["valid", "invalid"]
+    status: Literal["valid", "invalid", "pending", "approved"] = Field(
+        ...,
+        description="valid: serving; pending: geometrically valid but IoU vs the "
+        "last served polygon is below threshold, awaiting review; approved: a "
+        "pending revision confirmed by a reviewer, now serving; invalid: "
+        "topologically broken, never served",
+    )
     geometry: dict | None = Field(
-        default=None, description="GeoJSON Polygon, present only when status is valid"
+        default=None, description="GeoJSON Polygon, present unless status is invalid"
     )
     error: ErrorDetail | None = None
+    iou_ratio: float | None = Field(
+        default=None,
+        description="Intersection-over-union vs the last served polygon, computed "
+        "during the pre-publish quality check (null when no served polygon "
+        "existed or the revision is invalid)",
+    )
     input: dict | None = Field(
         default=None,
         description="Retained raw submission of the stored revision "
@@ -68,5 +80,10 @@ class RevisionResult(BaseModel):
     )
     last_valid_revision: int | None = Field(
         default=None,
-        description="Most recent valid revision still readable while the current one is invalid",
+        description="Most recent serving revision (status valid or approved)",
+    )
+    pending_revision: int | None = Field(
+        default=None,
+        description="Newer revision awaiting review; set by /current when the "
+        "latest revision is pending while an older polygon keeps being served",
     )

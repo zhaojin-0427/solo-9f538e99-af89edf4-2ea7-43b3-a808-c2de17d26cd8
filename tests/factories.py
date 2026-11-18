@@ -15,6 +15,11 @@ def revision(rev: int, nodes: list[dict], ways: list[dict]) -> dict:
     return {"revision": rev, "nodes": nodes, "ways": ways}
 
 
+def shifted(nodes: list[dict], dlon: float = 0.0, dlat: float = 0.0) -> list[dict]:
+    """Copy of a node list with every coordinate translated (drift simulation)."""
+    return [node(n["id"], n["lon"] + dlon, n["lat"] + dlat) for n in nodes]
+
+
 # Unit square outer ring, node ids 1..4, closed via repeated first ref.
 SQUARE_NODES = [
     node(1, 0.0, 0.0),

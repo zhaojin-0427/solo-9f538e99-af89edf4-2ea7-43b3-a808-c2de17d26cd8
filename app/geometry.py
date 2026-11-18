@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from shapely.geometry import LinearRing, Polygon, mapping
+from shapely.geometry import LinearRing, Polygon, mapping, shape
 from shapely.validation import explain_validity
 
 from .models import RevisionIn
@@ -250,3 +250,22 @@ def build_polygon_geojson(payload: RevisionIn) -> dict:
         )
 
     return mapping(polygon)
+
+
+def intersection_over_union(geom_a: dict, geom_b: dict) -> float:
+    """Intersection-over-union of two GeoJSON Polygon geometries.
+
+    Used by the pre-publish quality check to detect whole-sale coordinate
+    drift between the last served polygon and a new, topologically valid
+    revision.  Both inputs are already validated polygons, so the union
+    area is always positive; the guard only protects against degenerate
+    inputs.  Coordinates are compared in their native (lon/lat) plane,
+    which is adequate for the small areas this service manages.
+    """
+    a = shape(geom_a)
+    b = shape(geom_b)
+    intersection = a.intersection(b).area
+    union = a.area + b.area - intersection
+    if union <= 0.0:  # pragma: no cover - validated polygons always have area
+        return 1.0 if a.equals(b) else 0.0
+    return intersection / union
